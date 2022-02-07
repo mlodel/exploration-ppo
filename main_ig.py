@@ -13,9 +13,9 @@ import torch.optim as optim
 
 from a2c_ppo_acktr import algo, utils
 from a2c_ppo_acktr.algo import gail
-from a2c_ppo_acktr.arguments import get_args
+from a2c_ppo_acktr.arguments_ig import get_args
 from a2c_ppo_acktr.envs import make_vec_envs
-from a2c_ppo_acktr.model_ig import Policy_IG
+from a2c_ppo_acktr.model_ig import Policy
 from a2c_ppo_acktr.storage import RolloutStorage
 from evaluation import evaluate
 
@@ -118,7 +118,7 @@ def main():
 
     # ----------------------------------------------------------------------------------------------------
 
-    actor_critic = Policy_IG(
+    actor_critic = Policy(
         envs.observation_space.shape,
         envs.action_space,
         base_kwargs={'recurrent': args.recurrent_policy, 'device': device, 'fix_cnn': False})
@@ -232,7 +232,7 @@ def main():
         rollouts.compute_returns(next_value, args.use_gae, args.gamma,
                                  args.gae_lambda, args.use_proper_time_limits)
 
-        value_loss, action_loss, dist_entropy, approx_kl, clipfrac, returns, epochs = agent.update(rollouts)
+        value_loss, action_loss, dist_entropy, approx_kl, clipfrac, returns = agent.update(rollouts)
 
         rollouts.after_update()
 
@@ -282,7 +282,6 @@ def main():
                 tensorboard_writer.add_scalar("train/approx_kl", approx_kl, total_num_steps)
                 tensorboard_writer.add_scalar("train/clipfrac", clipfrac, total_num_steps)
                 tensorboard_writer.add_scalar("train/returns", returns, total_num_steps)
-                tensorboard_writer.add_scalar("train/epochs", epochs, total_num_steps)
 
                 if epinfos['n_episodes'] > 0:
                     for key in epinfos.keys():

@@ -24,7 +24,7 @@ def get_args():
     parser.add_argument(
         '--gail-epoch', type=int, default=5, help='gail epochs (default: 5)')
     parser.add_argument(
-        '--lr', type=float, default=7e-4, help='learning rate (default: 7e-4)')
+        '--lr', type=float, default=1e-5, help='learning rate (default: 7e-4)')
     parser.add_argument(
         '--eps',
         type=float,
@@ -43,7 +43,7 @@ def get_args():
     parser.add_argument(
         '--use-gae',
         action='store_true',
-        default=False,
+        default=True,
         help='use generalized advantage estimation')
     parser.add_argument(
         '--gae-lambda',
@@ -58,7 +58,7 @@ def get_args():
     parser.add_argument(
         '--value-loss-coef',
         type=float,
-        default=0.5,
+        default=0.1,
         help='value loss coefficient (default: 0.5)')
     parser.add_argument(
         '--max-grad-norm',
@@ -85,12 +85,12 @@ def get_args():
     parser.add_argument(
         '--ppo-epoch',
         type=int,
-        default=4,
+        default=5,
         help='number of ppo epochs (default: 4)')
     parser.add_argument(
         '--num-mini-batch',
         type=int,
-        default=4,
+        default=8,
         help='number of batches for ppo (default: 32)')
     parser.add_argument(
         '--clip-param',
@@ -100,7 +100,7 @@ def get_args():
     parser.add_argument(
         '--log-interval',
         type=int,
-        default=10,
+        default=1,
         help='log interval, one log per n updates (default: 10)')
     parser.add_argument(
         '--save-interval',
@@ -115,11 +115,11 @@ def get_args():
     parser.add_argument(
         '--num-env-steps',
         type=int,
-        default=10e6,
+        default=20e6,
         help='number of environment steps to train (default: 10e6)')
     parser.add_argument(
         '--env-name',
-        default='Pendulum-v0',
+        default='CollisionAvoidance-v0',
         help='environment to train on (default: PongNoFrameskip-v4)')
     parser.add_argument(
         '--log-dir',
@@ -149,6 +149,8 @@ def get_args():
         action='store_true',
         default=False,
         help='use a linear schedule on the learning rate')
+    parser.add_argument('--tensorboard-logdir', default=None,
+                        help='logs to tensorboard in the specified directory')
     args = parser.parse_args()
 
     args.cuda = not args.no_cuda and torch.cuda.is_available()

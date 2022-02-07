@@ -31,6 +31,9 @@ class PPO():
 
         self.optimizer = optim.Adam(actor_critic.parameters(), lr=lr, eps=eps)
 
+        self.kl_stop = True
+        self.kl_target = 0.01
+
     def update(self, rollouts):
         advantages = rollouts.returns[:-1] - rollouts.value_preds[:-1]
         advantages = (advantages - advantages.mean()) / (
@@ -42,6 +45,9 @@ class PPO():
         approx_kl_epoch = 0
         clipfrac_epoch = 0
         returns_epoch = 0
+        epochs = 0
+
+        continue_training = True
 
         for e in range(self.ppo_epoch):
             if self.actor_critic.is_recurrent:
@@ -89,6 +95,9 @@ class PPO():
                                          self.max_grad_norm)
                 self.optimizer.step()
 
+                if self.kl_stop and approx_kl.item() > self.kl_target:
+                    continue_training = False
+
                 value_loss_epoch += value_loss.item()
                 action_loss_epoch += action_loss.item()
                 dist_entropy_epoch += dist_entropy.item()
@@ -96,7 +105,11 @@ class PPO():
                 clipfrac_epoch += clipfrac.item()
                 returns_epoch += return_batch.mean().item()
 
-        num_updates = self.ppo_epoch * self.num_mini_batch
+            epochs += 1
+            if not continue_training:
+                break
+
+        num_updates = epochs * self.num_mini_batch
 
         value_loss_epoch /= num_updates
         action_loss_epoch /= num_updates
@@ -105,4 +118,5 @@ class PPO():
         clipfrac_epoch /= num_updates
         returns_epoch /= num_updates
 
-        return value_loss_epoch, action_loss_epoch, dist_entropy_epoch, approx_kl_epoch, clipfrac_epoch, returns_epoch
+        return value_loss_epoch, action_loss_epoch, dist_entropy_epoch, approx_kl_epoch, clipfrac_epoch, \
+               returns_epoch, epochs
