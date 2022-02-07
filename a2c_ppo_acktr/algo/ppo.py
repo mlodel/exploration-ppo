@@ -39,6 +39,9 @@ class PPO():
         value_loss_epoch = 0
         action_loss_epoch = 0
         dist_entropy_epoch = 0
+        approx_kl_epoch = 0
+        clipfrac_epoch = 0
+        returns_epoch = 0
 
         for e in range(self.ppo_epoch):
             if self.actor_critic.is_recurrent:
@@ -76,6 +79,9 @@ class PPO():
                 else:
                     value_loss = 0.5 * (return_batch - values).pow(2).mean()
 
+                approx_kl = 0.5 * torch.mean(torch.pow(old_action_log_probs_batch - action_log_probs, 2))
+                clipfrac = torch.mean((torch.abs(ratio - 1.0) > self.clip_param).double())
+
                 self.optimizer.zero_grad()
                 (value_loss * self.value_loss_coef + action_loss -
                  dist_entropy * self.entropy_coef).backward()
@@ -86,11 +92,17 @@ class PPO():
                 value_loss_epoch += value_loss.item()
                 action_loss_epoch += action_loss.item()
                 dist_entropy_epoch += dist_entropy.item()
+                approx_kl_epoch += approx_kl.item()
+                clipfrac_epoch += clipfrac.item()
+                returns_epoch += return_batch.mean().item()
 
         num_updates = self.ppo_epoch * self.num_mini_batch
 
         value_loss_epoch /= num_updates
         action_loss_epoch /= num_updates
         dist_entropy_epoch /= num_updates
+        approx_kl_epoch /= num_updates
+        clipfrac_epoch /= num_updates
+        returns_epoch /= num_updates
 
-        return value_loss_epoch, action_loss_epoch, dist_entropy_epoch
+        return value_loss_epoch, action_loss_epoch, dist_entropy_epoch, approx_kl_epoch, clipfrac_epoch, returns_epoch

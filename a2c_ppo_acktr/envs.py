@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from gym.spaces.box import Box
 from gym.wrappers.clip_action import ClipAction
+from a2c_ppo_acktr.flatten_observation import FlattenObservation
 from stable_baselines3.common.atari_wrappers import (ClipRewardEnv,
                                                      EpisodicLifeEnv,
                                                      FireResetEnv,
@@ -46,6 +47,9 @@ def make_env(env_id, seed, rank, log_dir, allow_early_resets):
         if is_atari:
             env = NoopResetEnv(env, noop_max=30)
             env = MaxAndSkipEnv(env, skip=4)
+
+        if str(env.__class__.__name__).find('CollisionAvoidanceEnv') >= 0:
+            env = FlattenObservation(env)
 
         env.seed(seed + rank)
 

@@ -6,7 +6,7 @@ import torch
 def get_args():
     parser = argparse.ArgumentParser(description='RL')
     parser.add_argument(
-        '--algo', default='a2c', help='algorithm to use: a2c | ppo | acktr')
+        '--algo', default='ppo', help='algorithm to use: a2c | ppo | acktr')
     parser.add_argument(
         '--gail',
         action='store_true',
@@ -80,7 +80,7 @@ def get_args():
     parser.add_argument(
         '--num-steps',
         type=int,
-        default=5,
+        default=128,
         help='number of forward steps in A2C (default: 5)')
     parser.add_argument(
         '--ppo-epoch',
@@ -90,7 +90,7 @@ def get_args():
     parser.add_argument(
         '--num-mini-batch',
         type=int,
-        default=32,
+        default=4,
         help='number of batches for ppo (default: 32)')
     parser.add_argument(
         '--clip-param',
@@ -119,7 +119,7 @@ def get_args():
         help='number of environment steps to train (default: 10e6)')
     parser.add_argument(
         '--env-name',
-        default='PongNoFrameskip-v4',
+        default='Pendulum-v0',
         help='environment to train on (default: PongNoFrameskip-v4)')
     parser.add_argument(
         '--log-dir',
