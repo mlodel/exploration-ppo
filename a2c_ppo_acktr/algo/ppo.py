@@ -31,7 +31,7 @@ class PPO():
 
         self.optimizer = optim.Adam(actor_critic.parameters(), lr=lr, eps=eps)
 
-        self.kl_stop = True
+        self.kl_stop = False
         self.kl_target = 0.01
 
     def update(self, rollouts):

@@ -58,7 +58,7 @@ def get_args():
     parser.add_argument(
         '--value-loss-coef',
         type=float,
-        default=0.1,
+        default=0.5,
         help='value loss coefficient (default: 0.5)')
     parser.add_argument(
         '--max-grad-norm',
@@ -75,12 +75,12 @@ def get_args():
     parser.add_argument(
         '--num-processes',
         type=int,
-        default=16,
+        default=8,
         help='how many training CPU processes to use (default: 16)')
     parser.add_argument(
         '--num-steps',
         type=int,
-        default=128,
+        default=256,
         help='number of forward steps in A2C (default: 5)')
     parser.add_argument(
         '--ppo-epoch',
@@ -90,7 +90,7 @@ def get_args():
     parser.add_argument(
         '--num-mini-batch',
         type=int,
-        default=8,
+        default=4,
         help='number of batches for ppo (default: 32)')
     parser.add_argument(
         '--clip-param',
@@ -142,7 +142,7 @@ def get_args():
     parser.add_argument(
         '--recurrent-policy',
         action='store_true',
-        default=False,
+        default=True,
         help='use a recurrent policy')
     parser.add_argument(
         '--use-linear-lr-decay',

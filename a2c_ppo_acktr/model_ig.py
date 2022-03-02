@@ -83,9 +83,6 @@ class IG_Base(NNBase):
         self.num_states = 6
         self.img_size = 80
 
-        # init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
-        #                        constant_(x, 0), nn.init.calculate_gain('relu'))
-
         self.large_map_encoder = CNN3Layer_old(img_size=self.img_size, img_ch=1, out_ftrs=128)
         self.small_map_encoder = CNN3Layer_old(img_size=self.img_size, img_ch=1, out_ftrs=128)
         cnn_models = [self.large_map_encoder,
@@ -98,11 +95,13 @@ class IG_Base(NNBase):
                     else:
                         continue
 
-        init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
-                               constant_(x, 0))
+        init_linear = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
+                                     constant_(x, 0))
+        init_relu = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
+                                   constant_(x, 0), nn.init.calculate_gain('relu'))
 
         self.state_encoder = nn.Sequential(
-            init_(nn.Linear(self.num_states, 128)),
+            init_linear(nn.Linear(self.num_states, 128)),
             # nn.BatchNorm1d(64),
             # nn.ELU(),
             # nn.Linear(64, 128),
@@ -110,11 +109,20 @@ class IG_Base(NNBase):
         num_in = 3 * 128
 
         self.merge_fc = nn.Sequential(
-            init_(nn.Linear(num_in, hidden_size)),
+            init_relu(nn.Linear(num_in, hidden_size)),
             nn.ReLU(),
         )
 
-        self.critic_linear = init_(nn.Linear(hidden_size, 1))
+        self.critic = nn.Sequential(
+            init_relu(nn.Linear(hidden_size, hidden_size)),
+            nn.ReLU(),
+            init_linear(nn.Linear(hidden_size, 1))
+        )
+
+        self.actor = nn.Sequential(
+            init_relu(nn.Linear(hidden_size, hidden_size)),
+            nn.ReLU(),
+        )
 
         self.train()
 
@@ -138,4 +146,4 @@ class IG_Base(NNBase):
         if self.is_recurrent:
             latent, rnn_hxs = self._forward_gru(latent, rnn_hxs, masks)
 
-        return self.critic_linear(latent), latent, rnn_hxs
+        return self.critic(latent), self.actor(latent), rnn_hxs
