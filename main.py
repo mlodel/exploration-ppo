@@ -4,24 +4,18 @@ import os
 import time
 from collections import deque
 
-import gym
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
+
 
 from a2c_ppo_acktr import algo, utils
-from a2c_ppo_acktr.algo import gail
 from a2c_ppo_acktr.arguments import get_args
 from a2c_ppo_acktr.envs import make_vec_envs
 from a2c_ppo_acktr.model_ig import Policy_IG
 from a2c_ppo_acktr.storage import RolloutStorage
-from evaluation import evaluate
+# from evaluation import evaluate
 
 from a2c_ppo_acktr.color_print import *
-
-import gym_collision_avoidance
 
 from a2c_ppo_acktr.blockstdout import stdout_redirected
 
@@ -43,21 +37,8 @@ def main():
 
     # --- Setup Envs and Paths ------------------
 
-    def get_latest_run_id(log_path):
-        p = os.listdir(log_path)
-        p = [item for item in p if os.path.isdir(log_path + '/' + item)]
-
-        if len(p) > 0:
-            p = list(map(lambda fname: int(fname.split('_')[1]), p))
-            p.sort()
-            id = p[-1]
-        else:
-            id = 0
-
-        return id
-
     log_dir = os.getcwd() + '/data'
-    save_path = os.path.join(log_dir, "log_{}".format(get_latest_run_id(log_dir) + 1))
+    save_path = os.path.join(log_dir, "log_{}".format(utils.get_latest_run_id(log_dir) + 1))
     args.save_dir = save_path
 
     eval_log_dir = save_path + "/eval"
@@ -87,12 +68,14 @@ def main():
 
     # ----------------------------------------------------------------------------------------------------
 
+    # Init Network Model
     actor_critic = Policy_IG(
         envs.observation_space.shape,
         envs.action_space,
         base_kwargs={'recurrent': args.recurrent_policy, 'device': device, 'fix_cnn': False})
     actor_critic.to(device)
 
+    # Init Algorithm
     agent = algo.PPO(
         actor_critic,
         args.clip_param,
@@ -104,10 +87,12 @@ def main():
         eps=args.eps,
         max_grad_norm=args.max_grad_norm)
 
+    # Init Batch Buffer
     rollouts = RolloutStorage(args.num_steps, args.num_processes,
                               envs.observation_space.shape, envs.action_space,
                               actor_critic.recurrent_hidden_state_size)
 
+    # Environment Settings
     envs.env_method('set_use_expert_action', 1, False, '', False, 0.0, False)
     envs.env_method('set_n_obstacles', 2)
 
