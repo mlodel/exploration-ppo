@@ -56,6 +56,8 @@ class TestDataManager:
         if ig_alg != 'rl_model':
             ig_expert_runtime = sum([infos[i]["ig_expert_runtime"] for i in range(self.n_envs)]) / self.n_envs
             self.episode_nn_processing_times.append(ig_expert_runtime)
+        else:
+            self.episode_nn_processing_times.append(nn_runtime)
 
         self.n_infeasible += sum([infos[i]["is_infeasible"] for i in range(self.n_envs)])
         self.max_step_reward[alg_id] = max(np.max(reward), self.max_step_reward[alg_id])
@@ -87,6 +89,10 @@ class TestDataManager:
                     self.n_eps_envs[i] = infos[i]["n_episodes"]
                     self.eps_env_ids[alg_id].append([i, infos[i]["n_episodes"]])
                 self.rewards[i] = []
+
+                eps_number = len(self.eps_rewards[alg_id])
+                if eps_number % 5 == 0 and eps_number > 0:
+                    print('Episode ' + str(eps_number) + ' completed with algorithm ' + ig_alg)
 
     def get_finished_episodes_number(self, alg_id):
         return len(self.eps_rewards[alg_id])
@@ -132,7 +138,7 @@ class TestDataManager:
             'max_step_reward': self.max_step_reward.tolist(),
             'avg_timings': self.total_avg_nn_timings.tolist()
         }
-        with open(os.path.join(self.save_path, '/results.yml'), 'w') as f:
+        with open(os.path.join(self.save_path, 'results.yml'), 'w') as f:
             yaml.dump(results_dict, f)
 
     def _print_summary(self, results_dict):
@@ -144,8 +150,8 @@ class TestDataManager:
             ig_alg = self.algos[i]
             output = np.c_[np.asarray(self.eps_rewards[i]), np.asarray(self.eps_steps[i]), np.asarray(self.eps_free_cells[i]),
                            np.asarray(self.eps_status[i]), np.asarray(self.eps_env_ids[i]), np.asarray(self.eps_seed[i])]
-            np.savetxt(os.path.join(self.save_path, '/eps_' + ig_alg + '.csv'), output, delimiter=",")
-        np.savetxt(os.path.join(self.save_path, '/rewards.csv'), self.eps_rewards, delimiter=",")
+            np.savetxt(os.path.join(self.save_path, 'eps_' + ig_alg + '.csv'), output, delimiter=",")
+        np.savetxt(os.path.join(self.save_path, 'rewards.csv'), self.eps_rewards, delimiter=",")
 
     def rewards_plot(self):
 
@@ -156,7 +162,7 @@ class TestDataManager:
         ax.violinplot(self.eps_rewards, showmeans=True, showextrema=True)
         # ax.set_xlabel('timesteps')
         ax.set_ylabel('episode rewards')
-        ax.set_xticks([1, 2, 3])
+        ax.set_xticks([i+1 for i in range(len(self.algos))])
         ax.set_xticklabels(self.algos)
         ax.yaxis.set_ticks_position('left')
         ax.xaxis.set_ticks_position('bottom')
@@ -165,4 +171,4 @@ class TestDataManager:
 
         # dateObj = datetime.now()
         # timestamp = dateObj.strftime("%Y%m%d_%H%M%S")
-        fig.savefig(os.path.join(self.save_path, '/rewards.png'))
+        fig.savefig(os.path.join(self.save_path, 'rewards.png'))

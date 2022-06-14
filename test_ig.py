@@ -9,9 +9,12 @@ from a2c_ppo_acktr.envs import make_vec_envs
 from a2c_ppo_acktr.blockstdout import stdout_redirected
 from a2c_ppo_acktr.test_data_manager import TestDataManager
 
+import gym_collision_avoidance
+
+
 parser = argparse.ArgumentParser(description='RL')
-# parser.add_argument(
-#     '--seed', type=int, default=1, help='random seed (default: 1)')
+parser.add_argument(
+    '--seed', type=int, default=1, help='random seed (default: 1)')
 parser.add_argument(
     '--run-id',
     type=int,
@@ -21,18 +24,18 @@ parser.add_argument(
 parser.add_argument(
     '--n-episodes',
     type=int,
-    default=100,
+    default=10,
     help='number of test episodes'
 )
 parser.add_argument(
     '--n-processes',
     type=int,
-    default=1,
+    default=8,
     help='number of env processes'
 )
 parser.add_argument(
     '--ig-algos',
-    default='rl_model ig_greedy',  # ig_mcts
+    default='rl_model ig_mcts ig_greedy',  # ig_mcts
     help='which if algorithms to evaluate'
 )
 args = parser.parse_args()
@@ -42,17 +45,17 @@ def main():
     log_dir = os.getcwd() + '/data'
     run_id = args.run_id if args.run_id > 0 else utils.get_latest_run_id(log_dir)
     run_path = os.path.join(log_dir, "log_{}".format(run_id))
-    save_path = os.path.join(run_path, '/test')
+    save_path = os.path.join(run_path, 'test')
 
 
     utils.cleanup_log_dir(save_path)
 
     args.env_name = 'CollisionAvoidance-v0'
-    envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
-                         args.gamma, save_path, device='cpu', allow_early_resets=False)
+    envs = make_vec_envs(args.env_name, args.seed, args.n_processes,
+                         None, None, device='cpu', allow_early_resets=False)
 
     # Setting to save plot trajectories
-    for i in range(args.num_processes):
+    for i in range(args.n_processes):
         plot_save_dir = save_path + '/figures_test/figs_env' + str(i) + '/'
         envs.env_method('set_plot_save_dir', plot_save_dir, indices=i)
         envs.env_method('set_n_env', args.n_processes, i, False, indices=i)
@@ -60,13 +63,13 @@ def main():
             envs.env_method('set_plot_env', False, indices=i)
 
     def get_latest_model_file(run_path):
-        p = [item for item in os.listdir(os.path.join(run_path, '/ppo')) if item.endswith('.pt')]
-
+        p = [item for item in os.listdir(os.path.join(run_path, 'ppo')) if item.endswith('.pt')]
         p.sort()
-        return p[-1]
+        return os.path.join(run_path, 'ppo',p[-1])
 
     # Load Network Model
-    actor_critic, obs_rms = torch.load(get_latest_model_file(run_path), map_location='cpu')
+    actor_critic, obs_rms = torch.load(get_latest_model_file(run_path), map_location=torch.device('cpu'))
+    actor_critic.base.device = torch.device('cpu')
 
     # Init LSTM reset masks and hidden states
     masks = torch.zeros(args.n_processes, 1)
@@ -80,7 +83,7 @@ def main():
 
     # Environment Settings
     envs.env_method('set_use_expert_action', 1, False, '', False, 0.0, False)
-    envs.env_method('set_n_obstacles', 2)
+    envs.env_method('set_n_obstacles', 3)
 
     # Get IG algorithms to compare
     ig_algs = args.ig_algos.split()
@@ -96,9 +99,9 @@ def main():
         for i in range(args.n_processes):
             # eps_num = env.get_attr("episode_number", indices=i)
             if ig_alg == 'rl_model':
-                envs.env_method('set_use_expert_action', alg_id, False, "", indices=i)
+                envs.env_method('set_use_expert_action', n_algs, False, "", False, 0.0, False)
             else:
-                envs.env_method('set_use_expert_action', alg_id, True, ig_alg, indices=i)
+                envs.env_method('set_use_expert_action', n_algs, True, ig_alg, False, 0.0, True)
 
         with stdout_redirected():
             obs = envs.reset()
@@ -126,11 +129,9 @@ def main():
                 dtype=torch.float32)
 
             # Save data
-            test_data.step(reward, infos, dones, ig_alg, alg_id, nn_runtime)
+            test_data.step(reward.numpy(), infos, dones, ig_alg, alg_id, nn_runtime)
 
-            eps_number = test_data.get_finished_episodes_number(alg_id)
-            if eps_number % 10 == 0:
-                print('Episode ' + str(eps_number) + ' completed with algorithm' + ig_alg)
+            # eps_number = test_data.get_finished_episodes_number(alg_id)
 
         # Collect data from this algo
         test_data.algo_postprocessing(alg_id)
@@ -140,6 +141,9 @@ def main():
 
     # Save episode rewards as csv files
     test_data.save_eps_rewards()
+
+    # Violin Plot Rewards
+    test_data.rewards_plot()
 
 
 if __name__ == "__main__":

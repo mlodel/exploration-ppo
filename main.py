@@ -17,6 +17,8 @@ from a2c_ppo_acktr.storage import RolloutStorage
 
 from a2c_ppo_acktr.color_print import *
 
+import gym_collision_avoidance
+
 from a2c_ppo_acktr.blockstdout import stdout_redirected
 
 
