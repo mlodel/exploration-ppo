@@ -141,9 +141,8 @@ def main():
                     rollouts.masks[step])
 
             # Obs reward and next obs
-            scaled_action = 4.0 * action
             with stdout_redirected():
-                obs, reward, done, infos = envs.step(scaled_action)
+                obs, reward, done, infos = envs.step(action)
 
             # for info in infos:
             #     if 'episode' in info.keys():
